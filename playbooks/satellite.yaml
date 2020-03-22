@@ -10,7 +10,6 @@
 #          - rhel-7-server-ansible-2.8-rpms
 #          - rhel-7-server-extras-rpms
 #          - rhel-7-server-satellite-maintenance-6-rpms
-#          - 
 #      rhsm_unregister: true
     - role: oasis_roles.hostname
       hostname: "{{ sat_hostname }}"
@@ -64,4 +63,3 @@
       satellite_proxy_dns: false
       satellite_proxy_dns_managed: false
       satellite_puppet_port: 8140
-
