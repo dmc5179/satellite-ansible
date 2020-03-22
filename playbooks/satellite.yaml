@@ -1,0 +1,67 @@
+---
+- hosts: satellite
+  roles:
+#    - role: oasis_roles.rhsm
+#      rhsm_repositories:
+#        only:
+#          - rhel-7-server-rpms
+#          - rhel-server-rhscl-7-rpms
+#          - rhel-7-server-satellite-6.5-rpms
+#          - rhel-7-server-ansible-2.8-rpms
+#          - rhel-7-server-extras-rpms
+#          - rhel-7-server-satellite-maintenance-6-rpms
+#          - 
+#      rhsm_unregister: true
+    - role: oasis_roles.hostname
+      hostname: "satellite.redhatgov.io"
+      hostname_inject_hosts_files: true
+#    - role: oasis_roles.nmcli_add_addrs
+#      nmcli_add_addrs_interface: "{{ ansible_default_ipv4.interface }}"
+#      nmcli_add_addrs_ipv4:
+#        - "{{ ansible_host | default(inventory_hostname) }}"
+    - role: oasis_roles.firewalld
+      firewalld_zone: public
+      firewalld_ports_open:
+        - proto: tcp
+          port: 80
+        - proto: tcp
+          port: 443
+        - proto: tcp
+          port: 8000
+        - proto: tcp
+          port: 9090
+        - proto: tcp
+          port: 53
+        - proto: udp
+          port: 69
+        - proto: tcp
+          port: 5000
+      firewalld_services:
+        - ssh
+        - http
+        - https
+    - role: oasis_roles.satellite
+      satellite_admin_password: redhat1!
+      satellite_admin_username: danclark
+      satellite_organization: "RedHat"
+      satellite_location: "McLean, USA"
+      satellite_enable_ssl: true
+      satellite_ssl_port: 443
+      satellite_http_port: 80
+      satellite_compute_ec2: true
+      satellite_compute_gce: false
+      satellite_compute_libvirt: false
+      satellite_compute_openstack: false
+      satellite_compute_ovirt: false
+      satellite_compute_rackspace: false
+      satellite_compute_vmware: false
+      satellite_proxy_http_port: 8000
+      satellite_proxy_http: true
+      satellite_proxy_ssl_port: 9090
+      satellite_proxy_ssl: true
+      satellite_proxy_dhcp: false
+      satellite_proxy_dhcp_managed: false
+      satellite_proxy_dns: false
+      satellite_proxy_dns_managed: false
+      satellite_puppet_port: 8140
+

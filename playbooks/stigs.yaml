@@ -1,0 +1,4 @@
+---
+- hosts: satellite
+  roles:
+    - role: redhatofficial.rhel7_stig
