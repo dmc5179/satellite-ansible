@@ -11,4 +11,10 @@ ansible_become_user=root
 
 [satellite]
 
+sat_hostname: ""
+sat_admin_password: 
+sat_admin_username: 
+sat_organization: ""
+sat_location: ""
+
 

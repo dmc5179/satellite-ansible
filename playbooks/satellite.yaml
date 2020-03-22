@@ -13,7 +13,7 @@
 #          - 
 #      rhsm_unregister: true
     - role: oasis_roles.hostname
-      hostname: "satellite.redhatgov.io"
+      hostname: "{{ sat_hostname }}"
       hostname_inject_hosts_files: true
 #    - role: oasis_roles.nmcli_add_addrs
 #      nmcli_add_addrs_interface: "{{ ansible_default_ipv4.interface }}"
@@ -41,10 +41,10 @@
         - http
         - https
     - role: oasis_roles.satellite
-      satellite_admin_password: redhat1!
-      satellite_admin_username: danclark
-      satellite_organization: "RedHat"
-      satellite_location: "McLean, USA"
+      satellite_admin_password: "{{ sat_admin_password }}"
+      satellite_admin_username: "{{ sat_admin_username }}"
+      satellite_organization: "{{ sat_organization }}"
+      satellite_location: "{{ sat_location }}"
       satellite_enable_ssl: true
       satellite_ssl_port: 443
       satellite_http_port: 80
