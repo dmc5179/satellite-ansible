@@ -1,20 +1,17 @@
-[all]
+[satellite]
+satellite.example.com
 
+[satellite:vars]
+sat_hostname="satellite.example.com"
+sat_admin_password=password
+sat_admin_username=admin
+sat_organization="Default"
+sat_location="US"
 
-[all:vars]
 ansible_ssh_private_key_file=
 ansible_connection=ssh
 ansible_user=ec2-user
 ansible_become=yes
 ansible_become_method=sudo
 ansible_become_user=root
-
-[satellite]
-
-sat_hostname: ""
-sat_admin_password: 
-sat_admin_username: 
-sat_organization: ""
-sat_location: ""
-
 
