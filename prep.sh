@@ -9,11 +9,8 @@ ansible-galaxy install oasis_roles.rhsm
 
 ansible-galaxy install oasis_roles.firewalld
 
-ansible-galaxy install oasis_roles.firewalld
-
-ansible-galaxy install oasis_roles.satellite
-
 ansible-galaxy install oasis_roles.hostname
 
 ansible-galaxy install redhatofficial.rhel7_stig
 
+ansible-galaxy install oasis_roles.nmcli_add_addrs
