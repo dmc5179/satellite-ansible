@@ -1,0 +1,7 @@
+redhatofficial.rhel7_cui
+oasis_roles.satellite
+oasis_roles.rhsm
+oasis_roles.firewalld
+oasis_roles.hostname
+redhatofficial.rhel7_stig
+oasis_roles.nmcli_add_addrs
