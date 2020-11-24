@@ -158,6 +158,7 @@ Resources:
 
             echo 'Configure and enable firewalld'
             systemctl enable --now firewalld
+            sleep 5
             firewall-cmd --zone=public --permanent --add-service=http
             firewall-cmd --zone=public --permanent --add-service=https
             firewall-cmd --zone=public --permanent --add-service=ssh
@@ -177,6 +178,10 @@ Resources:
             echo 'Install ansible galaxy roles'
             ansible-galaxy install oasis_roles.satellite
                         
+            ansible -v localhost -m include_role -a 'name=oasis_roles.satellite' -e "satellite_admin_password=${admin_password}" \
+              -e "satellite_admin_username=admin" -e "satellite_organization=${satellite_organization}" \
+              -e 'satellite_location=${satellite_location}' -e 'satellite_enable_ssl=true' \
+              -e 'satellite_compute_ec2=true'
 
           - admin_password: !Ref 'SatelliteAdminPassword'
             sm_username: !Ref 'SubscriptionUsername'
