@@ -1,0 +1,219 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Create Satellite Server
+
+Parameters:
+
+  VpcId:
+    Description: The VPC-scoped resources will belong to this VPC.
+    Type: AWS::EC2::VPC::Id
+
+  HostedZoneId:
+    Description: The Route53 public zone ID to register the targets with, such as Z21IXYZABCZ2A4.
+    Type: String
+    Default: ""
+
+  HostedZoneName:
+    Description: The Route53 zone to register the targets with, such as example.com. Omit the trailing period.
+    Type: String
+    Default: "example.com"
+
+  SubscriptionUsername:
+    Description: Username for subscription manager
+    Type: String
+    Default: ""
+
+  SubscriptionPassword:
+    Description: Base64 Encoded Password for Subscription Manager
+    Type: String
+    Default: ""
+
+  SubscriptionPoolId:
+    Description: Subscription Manager Pool ID
+    Type: String
+    Default: ""
+
+  SatelliteAdminPassword:
+    Description: Ansible Satellite admin password.
+    Type: String
+    Default: "redhat2020"
+
+  SatelliteOrganization:
+    Description: Satellite Organization
+    Type: String
+    Default: ""
+
+  SatelliteLocation:
+    Description: Satellite Location
+    Type: String
+    Default: ""
+
+  PublicSubnet:
+    Description: The internet-facing subnet.
+    Type: AWS::EC2::Subnet::Id
+
+  InstanceType:
+    Default: t2.large
+    Description: Instance type of the EC2 Instance
+    Type: String
+
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+
+  RootVolumeSize:
+    Default: '50'
+    Description: Volume Size of the Root EBS
+    Type: Number
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      "HVM64": "ami-0ff8a91507f77f867"
+    us-east-2:
+      "HVM64": "ami-058a93d58c5797698"
+    us-west-1:
+      "HVM64": "ami-0bdb828fd58c52235"
+    eu-west-1:
+      "HVM64": "ami-047bb4163c506cd98"
+
+Resources:
+
+  SatelliteSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Satellite Server Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        ToPort: 443
+        FromPort: 443
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        ToPort: 80
+        FromPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        ToPort: 8080
+        FromPort: 8080
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        ToPort: 8000
+        FromPort: 8000
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        ToPort: 5000
+        FromPort: 5000
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: udp
+        ToPort: 53
+        FromPort: 53
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: udp
+        ToPort: 69
+        FromPort: 69
+        CidrIp: 0.0.0.0/0
+      VpcId: !Ref VpcId
+
+  SatelliteInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: "true"
+        DeviceIndex: "0"
+        GroupSet:
+        - !Ref "SatelliteSecurityGroup"
+        SubnetId: !Ref "PublicSubnet"
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash -xe
+
+            hostnamectl set-hostname "satellite.${zone_name}"
+
+            PASS=$( echo ${sm_password} | base64 -d)
+
+            subscription-manager register --username=${sm_username} --password=$PASS
+            subscription-manager attach --pool=${sm_poolid}
+
+            subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-server-rhscl-7-rpms
+            subscription-manager repos --enable=rhel-7-server-satellite-6.8-rpms
+            subscription-manager repos --enable=rhel-7-server-ansible-2.8-rpms
+            subscription-manager repos --enable=rhel-7-server-extras-rpms
+            subscription-manager repos --enable=rhel-7-server-satellite-maintenance-6-rpms
+
+            yum clean all
+            yum -y update
+            yum -y install firewalld ansible
+
+            systemctl enable --now firewalld
+            firewall-cmd --zone=public --permanent --add-service=http
+            firewall-cmd --zone=public --permanent --add-service=https
+            firewall-cmd --zone=public --permanent --add-service=ssh
+            firewall-cmd --zone=public --permanent --add-port=80/tcp
+            firewall-cmd --zone=public --permanent --add-port=443/tcp
+            firewall-cmd --zone=public --permanent --add-port=8000/tcp
+            firewall-cmd --zone=public --permanent --add-port=9090/tcp
+            firewall-cmd --zone=public --permanent --add-port=5000/tcp
+            firewall-cmd --zone=public --permanent --add-port=53/tcp
+            firewall-cmd --zone=public --permanent --add-port=69/tcp
+            firewall-cmd --reload
+
+            echo "#Added by user data script" >> /etc/hosts
+            echo "127.0.0.1 satellite.${zone_name}" >> /etc/hosts
+            echo "#########" >> /etc/hosts
+
+            ansible-galaxy install oasis_roles.satellite
+                        
+
+          - admin_password: !Ref 'SatelliteAdminPassword'
+            sm_username: !Ref 'SubscriptionUsername'
+            sm_password: !Ref 'SubscriptionPassword'
+            sm_poolid: !Ref 'SubscriptionPoolId'
+            zone_name: !Ref 'HostedZoneName'
+            satellite_organization: !Ref 'SatelliteOrganization'
+            satellite_location: !Ref 'SatelliteLocation'
+
+  SatelliteIPAddress:
+    Type: AWS::EC2::EIP
+
+  SatelliteIPAssoc:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref 'SatelliteInstance'
+      EIP: !Ref 'SatelliteIPAddress'
+
+  SatelliteDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref 'HostedZoneId'
+      Comment: Satellite Instance.
+      Name: !Join [ '', [ "satellite.", !Ref 'HostedZoneName' ] ]
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+      - !Ref SatelliteIPAddress
+
+Outputs:
+  SatelliteInstanceId:
+    Description: Satellite Instance ID.
+    Value: !Ref SatelliteInstance
+
+  BootstrapPublicIp:
+    Description: The satellite node public IP address.
+    Value: !GetAtt SatelliteInstance.PublicIp
+
+  BootstrapPrivateIp:
+    Description: The satellite node private IP address.
+    Value: !GetAtt SatelliteInstance.PrivateIp
+
+  SatelliteIPAddress:
+    Description: IP address of the newly created Satellite Instance
+    Value: !Ref 'SatelliteIPAddress'
+
