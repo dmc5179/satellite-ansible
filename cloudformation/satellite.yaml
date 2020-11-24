@@ -135,23 +135,28 @@ Resources:
           - |
             #!/bin/bash -xe
 
+            echo 'Configure hostname'
             hostnamectl set-hostname "satellite.${zone_name}"
 
+            echo 'Register system with subscription-manager'
             PASS=$( echo ${sm_password} | base64 -d)
 
             subscription-manager register --username=${sm_username} --password=$PASS
             subscription-manager attach --pool=${sm_poolid}
 
+            echo 'Enable Required Repos'
             subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-server-rhscl-7-rpms
             subscription-manager repos --enable=rhel-7-server-satellite-6.8-rpms
             subscription-manager repos --enable=rhel-7-server-ansible-2.8-rpms
             subscription-manager repos --enable=rhel-7-server-extras-rpms
             subscription-manager repos --enable=rhel-7-server-satellite-maintenance-6-rpms
 
+            echo 'Update system packages'
             yum clean all
             yum -y update
             yum -y install firewalld ansible
 
+            echo 'Configure and enable firewalld'
             systemctl enable --now firewalld
             firewall-cmd --zone=public --permanent --add-service=http
             firewall-cmd --zone=public --permanent --add-service=https
@@ -169,6 +174,7 @@ Resources:
             echo "127.0.0.1 satellite.${zone_name}" >> /etc/hosts
             echo "#########" >> /etc/hosts
 
+            echo 'Install ansible galaxy roles'
             ansible-galaxy install oasis_roles.satellite
                         
 
