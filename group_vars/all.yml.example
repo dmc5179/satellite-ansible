@@ -1,0 +1,6 @@
+---
+satellite_version: '6.8'
+ansible_version: '2.9'
+username: ''
+password: ''
+pool_ids: ''
