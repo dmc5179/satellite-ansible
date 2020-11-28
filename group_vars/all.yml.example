@@ -1,6 +1,14 @@
 ---
+rh_username: ''
+rh_password: ''
+rh_pool_ids: ''
+
 satellite_version: '6.8'
 ansible_version: '2.9'
-username: ''
-password: ''
-pool_ids: ''
+
+sat_hostname: "satellite.example.com"
+sat_admin_password: 'password'
+sat_admin_username: 'admin'
+sat_organization: "Default"
+sat_location: "US"
+
