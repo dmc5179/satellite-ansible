@@ -3,3 +3,4 @@ inventory/inventory
 *.mine
 group_vars/all.yml
 group_vars/all.yaml
+ansible.log
