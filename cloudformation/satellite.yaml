@@ -18,21 +18,6 @@ Parameters:
     Type: String
     Default: "example.com"
 
-  SubscriptionUsername:
-    Description: Username for subscription manager
-    Type: String
-    Default: ""
-
-  SubscriptionPassword:
-    Description: Base64 Encoded Password for Subscription Manager
-    Type: String
-    Default: ""
-
-  SubscriptionPoolId:
-    Description: Subscription Manager Pool ID
-    Type: String
-    Default: ""
-
   SatelliteAdminPassword:
     Description: Ansible Satellite admin password.
     Type: String
@@ -69,13 +54,13 @@ Parameters:
 Mappings:
   RegionMap:
     us-east-1:
-      "HVM64": "ami-0ff8a91507f77f867"
+      "HVM64": ""
     us-east-2:
-      "HVM64": "ami-058a93d58c5797698"
+      "HVM64": "ami-059b5e48171635309"
     us-west-1:
-      "HVM64": "ami-0bdb828fd58c52235"
+      "HVM64": ""
     eu-west-1:
-      "HVM64": "ami-047bb4163c506cd98"
+      "HVM64": ""
 
 Resources:
 
@@ -135,58 +120,36 @@ Resources:
           - |
             #!/bin/bash -xe
 
-            echo 'Configure hostname'
-            hostnamectl set-hostname "satellite.${zone_name}"
+            yum -y install firewalld
 
-            echo 'Register system with subscription-manager'
-            PASS=$( echo ${sm_password} | base64 -d)
-
-            subscription-manager register --username=${sm_username} --password=$PASS
-            subscription-manager attach --pool=${sm_poolid}
-
-            echo 'Enable Required Repos'
-            subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-server-rhscl-7-rpms
-            subscription-manager repos --enable=rhel-7-server-satellite-6.8-rpms
-            subscription-manager repos --enable=rhel-7-server-ansible-2.8-rpms
-            subscription-manager repos --enable=rhel-7-server-extras-rpms
-            subscription-manager repos --enable=rhel-7-server-satellite-maintenance-6-rpms
-
-            echo 'Update system packages'
-            yum clean all
-            yum -y update
-            yum -y install firewalld ansible
-
-            echo 'Configure and enable firewalld'
-            systemctl enable --now firewalld
-            sleep 5
-            firewall-cmd --zone=public --permanent --add-service=http
-            firewall-cmd --zone=public --permanent --add-service=https
-            firewall-cmd --zone=public --permanent --add-service=ssh
-            firewall-cmd --zone=public --permanent --add-port=80/tcp
-            firewall-cmd --zone=public --permanent --add-port=443/tcp
-            firewall-cmd --zone=public --permanent --add-port=8000/tcp
-            firewall-cmd --zone=public --permanent --add-port=9090/tcp
-            firewall-cmd --zone=public --permanent --add-port=5000/tcp
-            firewall-cmd --zone=public --permanent --add-port=53/tcp
-            firewall-cmd --zone=public --permanent --add-port=69/tcp
-            firewall-cmd --reload
+            #TODO: Some ports appear to be missing from this list, blocking the main page
+            #echo 'Configure and enable firewalld'
+            #systemctl enable --now firewalld
+            #sleep 5
+            #firewall-cmd --zone=public --permanent --add-service=http
+            #firewall-cmd --zone=public --permanent --add-service=https
+            #firewall-cmd --zone=public --permanent --add-service=ssh
+            #firewall-cmd --zone=public --permanent --add-port=80/tcp
+            #firewall-cmd --zone=public --permanent --add-port=443/tcp
+            #firewall-cmd --zone=public --permanent --add-port=8000/tcp
+            #firewall-cmd --zone=public --permanent --add-port=9090/tcp
+            #firewall-cmd --zone=public --permanent --add-port=5000/tcp
+            #firewall-cmd --zone=public --permanent --add-port=53/tcp
+            #firewall-cmd --zone=public --permanent --add-port=69/tcp
+            #firewall-cmd --reload
 
             echo "#Added by user data script" >> /etc/hosts
             echo "127.0.0.1 satellite.${zone_name}" >> /etc/hosts
             echo "#########" >> /etc/hosts
 
-            echo 'Install ansible galaxy roles'
-            ansible-galaxy install oasis_roles.satellite
-                        
-            ansible -v localhost -m include_role -a 'name=oasis_roles.satellite' -e "satellite_admin_password=${admin_password}" \
-              -e "satellite_admin_username=admin" -e "satellite_organization=${satellite_organization}" \
-              -e 'satellite_location=${satellite_location}' -e 'satellite_enable_ssl=true' \
-              -e 'satellite_compute_ec2=true'
+            satellite-installer --scenario satellite \
+              --foreman-initial-organization "${satellite_organization}" \
+              --foreman-initial-location "${satellite_location}" \
+              --foreman-initial-admin-username admin \
+              --foreman-initial-admin-password "${admin_password}" \
+              --enable-foreman-compute-ec2 
 
           - admin_password: !Ref 'SatelliteAdminPassword'
-            sm_username: !Ref 'SubscriptionUsername'
-            sm_password: !Ref 'SubscriptionPassword'
-            sm_poolid: !Ref 'SubscriptionPoolId'
             zone_name: !Ref 'HostedZoneName'
             satellite_organization: !Ref 'SatelliteOrganization'
             satellite_location: !Ref 'SatelliteLocation'
